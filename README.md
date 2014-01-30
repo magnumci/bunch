@@ -53,3 +53,9 @@ bunch download \
   --manifest ~/my-project/Gemfile.lock \
   --prefix my-project
 ```
+
+## License
+
+The MIT License (MIT)
+
+Copyright (c) 2014 Dan Sosedoff, <dan.sosedoff@gmail.com>
