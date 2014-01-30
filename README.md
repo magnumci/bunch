@@ -54,6 +54,17 @@ bunch download \
   --prefix my-project
 ```
 
+## Build
+
+Project requires Go 1.2.
+
+To build a binary run, install dependencies and execute build command:
+
+```
+go get
+go build
+```
+
 ## License
 
 The MIT License (MIT)
