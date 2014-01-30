@@ -3,55 +3,28 @@ package main
 import(
   "fmt"
   "os"
-  "io"
-  "strings"
-  "crypto/sha1"
-  "github.com/kr/s3/s3util"
+  "os/exec"
   "github.com/jessevdk/go-flags"
+  "github.com/kr/s3/s3util"
+  "path/filepath"
+  "io/ioutil"
+  "runtime"
 )
 
 const VERSION = "0.1.0"
 
 var options struct {
-  Path     string `long:"path"      description:"Path to package"`
+  Prefix   string `long:"prefix"    description:"Archive prefix"`
+  Path     string `long:"path"      description:"Path to cache"`
+  Manifest string `long:"manifest"  description:"Path to Gemfile.lock or package.json"`
   S3Key    string `long:"s3-key"    description:"Amazon S3 access key"`
   S3Secret string `long:"s3-secret" description:"Amazon S3 secret key"`
   S3Bucket string `long:"s3-bucket" description:"Amazon S3 bucket name"`
 }
 
-func envDefined(name string) bool {
-  result := os.Getenv(name)
-  return len(result) > 0
-}
-
-func fileExists(path string) bool {
-  _, err := os.Stat(path)
-  return err == nil
-}
-
-func sha1Checksum(buffer string) string {
-  h := sha1.New()
-  io.WriteString(h, buffer)
-  return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func fatal(message string) {
-  terminate(message, 1)
-}
-
-func terminate(message string, exit_code int) {
-  fmt.Fprintln(os.Stderr, message)
-  os.Exit(exit_code)
-}
-
-func terminateWithError(err error, exit_code int) {
-  fmt.Fprintln(os.Stderr, err)
-  os.Exit(exit_code)
-}
-
 func printUsage() {
   fmt.Printf("Bunch v%s\n", VERSION)
-  fmt.Println("Usage: bunch [rubygems|npm] [upload|download]")
+  fmt.Println("Usage: bunch [upload|download]")
 }
 
 func loadS3Credentials() {
@@ -68,116 +41,204 @@ func loadS3Credentials() {
   }
 }
 
-func checkS3Credentials() {
-  if len(options.S3Key) == 0 { 
-    fatal("S3 access key is not set.")
-  }
-  
-  if len(options.S3Secret) == 0 { 
-    fatal("S3 secret key is not set.")
-  }
-  
-  if len(options.S3Bucket) == 0 { 
-    fatal("S3 bucket name is not set.")
-  }
+func setS3Credentials() {
+  s3util.DefaultConfig.AccessKey = options.S3Key
+  s3util.DefaultConfig.SecretKey = options.S3Secret
 }
 
-func isUrl(s string) bool {
-  return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+func checkOptions() {
+  if len(options.Prefix) == 0   { fatal("Please specify --prefix")    }
+  if len(options.Manifest) == 0 { fatal("Please specify --manifest")  }
+  if len(options.Path) == 0     { fatal("Please specify --path")      }
+  if len(options.S3Key) == 0    { fatal("Please specify --s3-key")    }
+  if len(options.S3Secret) == 0 { fatal("Please specify --s3-secret") }
+  if len(options.S3Bucket) == 0 { fatal("Please specify --s3-bucket") }
 }
 
-func s3Url(filename string) string {
-  format := "https://s3.amazonaws.com/%s/%s"
-  url := fmt.Sprintf(format, options.S3Bucket, filename)
-
-  return url
+// Expand path arguments to support tildas. Example: "~/path" 
+//
+func expandPathArguments() {
+  options.Path = expandPath(options.Path)
+  options.Manifest = expandPath(options.Manifest)
 }
 
-func open(s string) (io.ReadCloser, error) {
-  if isUrl(s) {
-    return s3util.Open(s, nil)
+// Extract an archive to a path. Returs true on success
+//
+// extract("/tmp/archive.tar.gz", "/path/to/extract")
+//
+func extract(filename string, path string) bool {
+  // Create a directory to extract archive to
+  if _, err := exec.Command("mkdir", path).Output() ; err != nil {
+    fmt.Println("Unable to create extaction path")
+    return false
   }
-  return os.Open(s)
-}
 
-func create(s string) (io.WriteCloser, error) {
-  if isUrl(s) {
-    return s3util.Create(s, nil, nil)
+  // Extract tarball to created directory
+  if _, err := exec.Command("tar", "-xzf", filename, "-C", path).Output() ; err != nil {
+    fmt.Println("Unable to extract archive")
+    return false
   }
-  return os.Create(s)
+
+  return true
 }
 
-func transferArchive(file string, url string, fail_status int) {
-  r, err := open(file)
+// Create a new gzip-compressed tarball
+//
+// archive("/path/to/archive", "/tmp/archive.tar.gz")
+//
+func archive(path string, archive_path string) bool {
+  cmd := fmt.Sprintf("cd %s && tar -czf %s .", path, archive_path)
+
+  out, err := exec.Command("bash", "-c", cmd).Output()
+
   if err != nil {
-    terminateWithError(err, fail_status)
+    fmt.Println(out)
+    fmt.Println(err)
+    return false
   }
 
-  w, err := create(url)
-  if err != nil {
-    terminateWithError(err, fail_status)
-  }
+  return true
+}
 
-  _, err = io.Copy(w, r)
-  if err != nil {
-    terminateWithError(err, fail_status)
-  }
+// Creaate .bunch file to indicate that dependencies were cached
+//
+// writeCacheFile("/path/to/bundle")
+//
+func writeCacheFile(path string) {
+  cache_file := fmt.Sprintf("%s/.bunch", path)
 
-  err = w.Close()
-  if err != nil {
-    terminateWithError(err, fail_status)
+  if _, err := exec.Command("touch", cache_file).Output(); err != nil {
+    fatal("Failed to create cache file")
   }
 }
 
-func handleRubygems(action string) {
-  /* NOOP */
-}
+// Download an archive from Amazon S3 bucket and extract it to a directory
+//
+// download("http://example.com/archive.tar.gz", "/path/to/extract")
+//
+func download(url string, extract_path string) {
+  // Save to temporary file named after archive
+  save_path := fmt.Sprintf("/tmp/%s", filepath.Base(url))
 
-func handleNpm(action string) {
-  /* NOOP */
-}
+  fmt.Println("Downloading archive from Amazon S3...")
+  transfer(url, save_path, 0)
 
-func main() {
-  args := os.Args
-
-  if (len(args) < 3) {
-    printUsage()
+  fmt.Println("Extracting archive...")
+  if !extract(save_path, extract_path) {
+    os.Remove(save_path)
     os.Exit(1)
   }
 
-  new_args, err := flags.ParseArgs(&options, os.Args)
+  // Mark extracted archive as cached
+  writeCacheFile(extract_path)
+
+  fmt.Println("Done")
+  os.Exit(0)
+}
+
+func upload(name string, path string, manifest_path string) {
+  manifest, err := ioutil.ReadFile(manifest_path)
+
+  if err != nil {
+    fatal("Unable to read manifest file")
+  }
+
+  // TODO: Check if manifest is empty
+
+  // Generate a SHA1 hash for manifest file
+  checksum := sha1Checksum(string(manifest))
+
+  // Create a new archive
+  archive_path := fmt.Sprintf("/tmp/%s_%s_%s.tar.gz", name, checksum, runtime.GOARCH)
+
+  fmt.Println("Archiving bundle...")
+
+  if !archive(path, archive_path) {
+    fatal("Unable to create archive")
+  }
+
+  // Upload archive to S3
+  fmt.Println("Uploading bundle to Amazon S3...")
+  transfer(archive_path, s3Url(filepath.Base(archive_path)), 0)
+
+  fmt.Println("Done")
+  os.Exit(0)
+}
+
+func handleUpload() {
+  if fileExists(fmt.Sprintf("%s/.bunch", options.Path)) {
+    fatal("Already cached")
+  }
+
+  if !fileExists(options.Path) {
+    fatal("Path does not exist")
+  }
+
+  if !fileExists(options.Manifest) {
+    fatal("Manifest file does not exist")
+  }
+
+  upload(options.Prefix, options.Path, options.Manifest)
+}
+
+func handleDownload() {
+  // Check if extraction directory already exists
+  if fileExists(options.Path) {
+    fatal("Path already exists")
+  }
+
+  // Load manifest file
+  manifest, err := ioutil.ReadFile(options.Manifest)
+
+  if err != nil {
+    fatal("Unable to read manifest file")
+  }
+
+  // Generate SHA1 hash from manifest file contents
+  checksum := sha1Checksum(string(manifest))
+
+  // Build download url
+  filename := fmt.Sprintf("%s_%s_%s.tar.gz", options.Prefix, checksum, runtime.GOARCH)
+  url := s3Url(filename)
+
+  // Download and extract archive
+  download(url, options.Path)
+}
+
+func handleCommand(command string) {
+  switch command {
+  default:
+    fmt.Println("Invalid command:", command)
+    printUsage()
+  case "upload":
+    handleUpload()
+  case "download":
+    handleDownload()
+  }
+}
+
+func getCommand() string {
+  if len(os.Args) < 2 {
+    printUsage();
+    os.Exit(1)
+  }
+
+  args, err := flags.ParseArgs(&options, os.Args)
 
   if err != nil {
     fmt.Println(err)
     os.Exit(1)
   }
 
-  fmt.Println(new_args)
+  return args[1]
+}
 
-  service := args[1]
-  action  := args[2]
+func main() {
+  command := getCommand()
 
   loadS3Credentials()
-  checkS3Credentials()
-
-  if len(options.Path) == 0 {
-    options.Path, _ = os.Getwd()
-  }
-
-  if len(options.Prefix) == 0 {
-    options.Prefix = filepath.Base(options.Path)
-  }
-
-  fmt.Println(options)
-
-  switch service {
-  case "rubygems":
-    handleRubygems(action)
-    return
-  case "npm":
-    handleNpm(action)
-    return
-  default:
-    fatal("Invalid service")
-  }
+  checkOptions()
+  setS3Credentials()
+  expandPathArguments()
+  handleCommand(command)
 }
