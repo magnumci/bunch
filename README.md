@@ -2,27 +2,27 @@
 
 Utility to cache project dependencies (Ruby, NPM) to Amazon S3 bucket.
 
+## Overview
+
+Bunch is a tool to upload/download contents of any directory from Amazon S3. Initially
+created to cache Rubygems/NPM bundles as compressed tarballs (tar.gz) to speed up 
+CI build times.
+
 ## Usage
 
-Available options:
+Run bunch upload/download command with the following options:
 
-```
-Usage:
-  bunch [OPTIONS]
-
-Application Options:
-      --prefix=    Archive prefix
-      --path=      Path to cache
-      --manifest=  Path to Gemfile.lock or package.json
-      --s3-key=    Amazon S3 access key
-      --s3-secret= Amazon S3 secret key
-      --s3-bucket= Amazon S3 bucket name
-
-Help Options:
-  -h, --help       Show this help message
+``` bash
+bunch [upload|download] \
+  --prefix=my-project \
+  --path=path/to/dir \
+  --manifest=path/to/manifest
+  --s3-key=key \
+  --s3-secret=secret \
+  --s3-bucket=bucket
 ```
 
-If you dont want provide Amazon S3 credentials in terminal, you can always
+If you don't want to specify Amazon S3 credentials in terminal, you can always
 export variables into your environment and they will be loaded automatically.
 
 Example:
@@ -31,26 +31,6 @@ Example:
 export S3_KEY=key
 export S3_SECRET=secret
 export S3_BUCKET=bucket
-```
-
-### Examples
-
-To upload bundle, execute command as follows:
-
-``` bash
-bunch upload \
-  --path ~/my-project/.bundle \
-  --manifest ~/my-project/Gemfile.lock \
-  --prefix my-project
-```
-
-To download bundle cache:
-
-``` bash
-bunch download \
-  --path ~/my-project/.bundle \
-  --manifest ~/my-project/Gemfile.lock \
-  --prefix my-project
 ```
 
 ## Build
@@ -63,6 +43,8 @@ To build a binary run, install dependencies and execute build command:
 go get
 go build
 ```
+
+To build for multiple operating systems and architectures, use [gox](https://github.com/mitchellh/gox).
 
 ## License
 
