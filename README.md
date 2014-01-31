@@ -22,6 +22,12 @@ bunch [upload|download] \
   --s3-bucket=bucket
 ```
 
+Options:
+
+- `prefix` - Filename prefix. Archives are uploaded in the format: `http://s3.amazonaws.com/bucket/prefix-sha1-arch.tar.gz`
+- `path` - Path to directory that should be cached
+- `manifest` - Path to file that should be used to calculate checksum (Gemfile.lock, package.json, etc). 
+
 If you don't want to specify Amazon S3 credentials in terminal, you can always
 export variables into your environment and they will be loaded automatically.
 
