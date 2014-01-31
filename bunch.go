@@ -143,7 +143,9 @@ func upload(name string, path string, manifest_path string) {
     fatal("Unable to read manifest file")
   }
 
-  // TODO: Check if manifest is empty
+  if string(manifest) == "" {
+    fatal("Manifest is empty")
+  }
 
   // Generate a SHA1 hash for manifest file
   checksum := sha1Checksum(string(manifest))
@@ -192,6 +194,10 @@ func handleDownload() {
 
   if err != nil {
     fatal("Unable to read manifest file")
+  }
+
+  if string(manifest) == "" {
+    fatal("Manifest is empty")
   }
 
   // Generate SHA1 hash from manifest file contents
