@@ -23,8 +23,7 @@ Help Options:
 ```
 
 If you dont want provide Amazon S3 credentials in terminal, you can always
-export variables into your environment and they'll going to be automatically
-loaded.
+export variables into your environment and they will be loaded automatically.
 
 Example:
 
