@@ -47,12 +47,12 @@ func setS3Credentials() {
 }
 
 func checkOptions() {
-  if len(options.Prefix) == 0   { fatal("Please specify --prefix")    }
-  if len(options.Manifest) == 0 { fatal("Please specify --manifest")  }
-  if len(options.Path) == 0     { fatal("Please specify --path")      }
-  if len(options.S3Key) == 0    { fatal("Please specify --s3-key")    }
-  if len(options.S3Secret) == 0 { fatal("Please specify --s3-secret") }
-  if len(options.S3Bucket) == 0 { fatal("Please specify --s3-bucket") }
+  if options.Prefix == ""   { fatal("Please specify --prefix")    }
+  if options.Manifest == "" { fatal("Please specify --manifest")  }
+  if options.Path == ""     { fatal("Please specify --path")      }
+  if options.S3Key == ""    { fatal("Please specify --s3-key")    }
+  if options.S3Secret == "" { fatal("Please specify --s3-secret") }
+  if options.S3Bucket == "" { fatal("Please specify --s3-bucket") }
 }
 
 // Expand path arguments to support tildas. Example: "~/path" 
