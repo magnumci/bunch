@@ -89,11 +89,8 @@ func extract(filename string, path string) bool {
 func archive(path string, archive_path string) bool {
   cmd := fmt.Sprintf("cd %s && tar -czf %s .", path, archive_path)
 
-  out, err := exec.Command("bash", "-c", cmd).Output()
-
-  if err != nil {
-    fmt.Println(out)
-    fmt.Println(err)
+  if _, err := exec.Command("bash", "-c", cmd).Output() ; err != nil {
+    fmt.Println("Unable to create archive")
     return false
   }
 
@@ -104,12 +101,15 @@ func archive(path string, archive_path string) bool {
 //
 // writeCacheFile("/path/to/bundle")
 //
-func writeCacheFile(path string) {
+func writeCacheFile(path string) bool {
   cache_file := fmt.Sprintf("%s/.bunch", path)
 
   if _, err := exec.Command("touch", cache_file).Output(); err != nil {
-    fatal("Failed to create cache file")
+    fmt.Println("Unable to create .bunch cache file")
+    return false
   }
+
+  return true
 }
 
 // Download an archive from Amazon S3 bucket and extract it to a directory
