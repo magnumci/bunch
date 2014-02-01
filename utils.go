@@ -56,9 +56,9 @@ func isUrl(s string) bool {
   return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
 }
 
-func s3Url(filename string) string {
+func s3Url(bucket string, filename string) string {
   format := "https://s3.amazonaws.com/%s/%s"
-  url := fmt.Sprintf(format, options.S3Bucket, filename)
+  url := fmt.Sprintf(format, bucket, filename)
 
   return url
 }

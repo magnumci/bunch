@@ -161,7 +161,7 @@ func upload(name string, path string, manifest_path string) {
 
   // Upload archive to S3
   fmt.Println("Uploading bundle to Amazon S3...")
-  transfer(archive_path, s3Url(filepath.Base(archive_path)), 0)
+  transfer(archive_path, s3Url(options.S3Bucket, filepath.Base(archive_path)), 0)
 
   fmt.Println("Done")
   os.Exit(0)
@@ -205,7 +205,7 @@ func handleDownload() {
 
   // Build download url
   filename := fmt.Sprintf("%s_%s_%s.tar.gz", options.Prefix, checksum, runtime.GOARCH)
-  url := s3Url(filename)
+  url := s3Url(options.S3Bucket, filename)
 
   // Download and extract archive
   download(url, options.Path)
