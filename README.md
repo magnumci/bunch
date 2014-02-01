@@ -52,6 +52,20 @@ go build
 
 To build for multiple operating systems and architectures, use [gox](https://github.com/mitchellh/gox).
 
+## Test
+
+Install `testify` library:
+
+``` bash
+go get github.com/stretchr/testify/assert
+```
+
+And execute test suite:
+
+``` bash
+go test
+```
+
 ## License
 
 The MIT License (MIT)
