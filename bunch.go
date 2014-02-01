@@ -105,7 +105,6 @@ func writeCacheFile(path string) bool {
   cache_file := fmt.Sprintf("%s/.bunch", path)
 
   if _, err := exec.Command("touch", cache_file).Output(); err != nil {
-    fmt.Println("Unable to create .bunch cache file")
     return false
   }
 
@@ -130,7 +129,11 @@ func download(url string, extract_path string) {
   }
 
   // Mark extracted archive as cached
-  writeCacheFile(extract_path)
+  if !writeCacheFile(extract_path) {
+    fmt.Println("Unable to create .bunch cache file")
+    os.Remove(save_path)
+    os.Exit(1)
+  }
 
   fmt.Println("Done")
   os.Exit(0)
