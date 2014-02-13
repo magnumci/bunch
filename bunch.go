@@ -227,11 +227,6 @@ func handleCommand(command string) {
 }
 
 func getCommand() string {
-  if len(os.Args) < 2 {
-    printUsage();
-    os.Exit(1)
-  }
-
   args, err := flags.ParseArgs(&options, os.Args)
 
   if err != nil {
@@ -239,9 +234,13 @@ func getCommand() string {
     os.Exit(1)
   }
 
+  if len(args) < 2 {
+    printUsage();
+    os.Exit(1)
+  }
+
   return args[1]
 }
-
 func main() {
   command := getCommand()
 
