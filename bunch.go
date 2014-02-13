@@ -11,7 +11,7 @@ import(
   "runtime"
 )
 
-const VERSION = "0.1.0"
+const VERSION = "0.1.1"
 
 var options struct {
   Prefix   string `long:"prefix"    description:"Archive prefix"`
