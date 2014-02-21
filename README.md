@@ -1,6 +1,8 @@
 # bunch
 
-Utility to cache project dependencies (Ruby, NPM) to Amazon S3 bucket.
+General purpose utility to cache project dependencies or artifacts to Amazon S3.
+
+Good for caching Rubygems or NPM bundles.
 
 ## Overview
 
