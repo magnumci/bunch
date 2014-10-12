@@ -239,12 +239,7 @@ func handleCommand(command string) {
 }
 
 func getCommand() string {
-	args, err := flags.ParseArgs(&options, os.Args)
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	args, _ := flags.ParseArgs(&options, os.Args)
 
 	if len(args) < 2 {
 		printUsage()
